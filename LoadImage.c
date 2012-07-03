@@ -4,6 +4,15 @@ NTSTATUS PsLookupProcessByProcessId(__in   HANDLE ProcessId,
 
 static VOID LoadImageNotifyRoutine( PUNICODE_STRING FullImageName, HANDLE ProcessId, PIMAGE_INFO ImageInfo);
 
+NTSTATUS ObOpenObjectByPointer(__in      PVOID Object,
+							   __in      ULONG HandleAttributes,
+							   __in_opt  PACCESS_STATE PassedAccessState,
+							   __in      ACCESS_MASK DesiredAccess,
+							   __in_opt  POBJECT_TYPE ObjectType,
+							   __in      KPROCESSOR_MODE AccessMode,
+							   __out     PHANDLE Handle);
+
+
 VOID LoadImageNotifyRoutine( PUNICODE_STRING FullImageName, HANDLE ProcessId, PIMAGE_INFO ImageInfo)
 {
 	HANDLE hProcess = NULL;
@@ -21,7 +30,14 @@ VOID LoadImageNotifyRoutine( PUNICODE_STRING FullImageName, HANDLE ProcessId, PI
 			DbgPrint(("Err PsLookupProcessByProcessId\n"));
 		DbgPrint("Process ID: %d",ProcessId);
 		DbgPrint("Full Name: %wZ",FullImageName);
-		status = ZwTerminateProcess(peProcess, STATUS_SUCCESS);
+		
+		status = ObOpenObjectByPointer(peProcess, OBJ_KERNEL_HANDLE,
+										NULL, DELETE, NULL, KernelMode,
+										&hProcess);
+		if(status != STATUS_SUCCESS)
+			DbgPrint("ObOpenObjectByPointer error");
+		
+		status = ZwTerminateProcess(hProcess, STATUS_SUCCESS);
 		if(status)
 			DbgPrint("ZwTerminateProcess error /n");
 	}
