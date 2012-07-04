@@ -1,5 +1,9 @@
 #include <ntifs.h>
 
+UNICODE_STRING DeviceName;
+UNICODE_STRING SymbolicLinkName;
+PDEVICE_OBJECT deviceObject = NULL;
+
 typedef struct {
   PWCHAR fullName;
   PWCHAR name;
@@ -33,6 +37,7 @@ VOID LoadImageNotifyRoutine( PUNICODE_STRING FullImageName, HANDLE ProcessId, PI
 
 
 	PWCHAR path;
+	PWCHAR name;
 	USHORT length,i;
 	UNICODE_STRING ext;
 	UNICODE_STRING exeExt;
@@ -89,19 +94,93 @@ VOID LoadImageNotifyRoutine( PUNICODE_STRING FullImageName, HANDLE ProcessId, PI
 
 }
 
+NTSTATUS DriverCreateClose(
+    IN PDEVICE_OBJECT DeviceObject,
+    IN PIRP Irp)
+{
+    Irp->IoStatus.Information = 0;
+    Irp->IoStatus.Status = STATUS_SUCCESS;
+    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+    return STATUS_SUCCESS;
+}
 
 VOID UnloadRoutine(IN PDRIVER_OBJECT DriverObject)
 {
     PsRemoveLoadImageNotifyRoutine(  LoadImageNotifyRoutine );
+	IoDeleteSymbolicLink(&SymbolicLinkName);
+    IoDeleteDevice(deviceObject);
     DbgPrint("Unload!\n");
+}
+
+NTSTATUS DriverIoControl(
+    IN PDEVICE_OBJECT DeviceObject,
+    IN PIRP Irp)
+{
+    PIO_STACK_LOCATION pisl;
+    NTSTATUS ns = STATUS_UNSUCCESSFUL;
+    ULONG BuffSize, DataSize = 3000;
+	PVOID pBuff = NULL, pData = NULL;
+   
+    pisl = IoGetCurrentIrpStackLocation (Irp);
+
+	BuffSize = pisl->Parameters.DeviceIoControl.OutputBufferLength;
+
+	pBuff = Irp->AssociatedIrp.SystemBuffer;
+
+	Irp->IoStatus.Information = 0;
+
+	/*switch(pisl->Parameters.DeviceIoControl.IoControlCode)
+	{
+		case IOCTL_GET_EPROCESS_PSLIST :
+		   pData = GetEprocessProcessList(&DataSize);
+		   if (pData)
+		   {
+			   if (BuffSize >= DataSize)
+			   {*/
+				   memcpy(pBuff, pData, DataSize);
+				   Irp->IoStatus.Information = DataSize;
+				   ns = STATUS_SUCCESS;
+			  /* } else ns = STATUS_INFO_LENGTH_MISMATCH;
+
+			  ExFreePool(pData);
+		   }
+		 break;
+		 }   */
+
+    Irp->IoStatus.Status = ns;
+    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+    return ns;
 }
 
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject,  IN PUNICODE_STRING RegistryPath)
 {
+	NTSTATUS status;
+	PDRIVER_DISPATCH *ppdd;
+	PCWSTR dDeviceName       = L"\\Device\\procmon";
+	PCWSTR dSymbolicLinkName = L"\\DosDevices\\procmon";
+
+	RtlInitUnicodeString(&DeviceName,       dDeviceName);
+    RtlInitUnicodeString(&SymbolicLinkName, dSymbolicLinkName);
+	
+	status = IoCreateDevice(DriverObject, 0, &DeviceName, FILE_DEVICE_UNKNOWN, 0, TRUE, &deviceObject);
+	if (!NT_SUCCESS(status)) return status;
+
+	status = IoCreateSymbolicLink(&SymbolicLinkName, &DeviceName);
+	if (!NT_SUCCESS(status))
+	{
+		IoDeleteDevice(deviceObject);
+		return status;
+	}
+	
     PsSetLoadImageNotifyRoutine( LoadImageNotifyRoutine );
     DriverObject->DriverUnload = UnloadRoutine;
+	ppdd = DriverObject->MajorFunction;
+   
+	ppdd [IRP_MJ_CREATE] = DriverCreateClose;
+    ppdd [IRP_MJ_CLOSE ] = DriverCreateClose;
+    ppdd [IRP_MJ_DEVICE_CONTROL ] = DriverIoControl;
     DbgPrint("Driver loaded");
     
-    return STATUS_SUCCESS; 
+    return status; 
 
 }
