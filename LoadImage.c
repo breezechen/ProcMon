@@ -1,4 +1,27 @@
 #include <ntddk.h>
+
+typedef struct {
+  PWCHAR fullName;
+  PWCHAR name;
+  PWCHAR hash;
+  SINGLE_LIST_ENTRY SingleListEntry;
+  ULONG pId;
+} BLIST_ENTRY, *PBLIST_ENTRY;
+
+void
+PushBLISTEntry(PSINGLE_LIST_ENTRY ListHead, PBLIST_ENTRY Entry)
+{
+    PushEntryList(ListHead, &(Entry->SingleListEntry));
+}
+
+PBLIST_ENTRY
+PopBLISTEntry(PSINGLE_LIST_ENTRY ListHead)
+{
+    PSINGLE_LIST_ENTRY SingleListEntry;
+    SingleListEntry = PopEntryList(ListHead);
+    return CONTAINING_RECORD(SingleListEntry, BLIST_ENTRY, SingleListEntry);
+}
+
 NTSTATUS PsLookupProcessByProcessId(__in   HANDLE ProcessId,
 									__out  PEPROCESS *Process);
 
@@ -20,11 +43,14 @@ VOID LoadImageNotifyRoutine( PUNICODE_STRING FullImageName, HANDLE ProcessId, PI
 	PEPROCESS peProcess;
 	PWCHAR path;
 	USHORT length;
+	
 	length = (FullImageName->Length) / 2;
 	path = FullImageName->Buffer;
-	if (path[length-1] == 'e' )
+	if (path[length - 1] == 'e' )
 	{
-		//DbgBreakPoint();
+		path += 10;
+		DbgPrint(path);
+		DbgBreakPoint();
 		status = PsLookupProcessByProcessId(ProcessId, &peProcess);
         if (status != STATUS_SUCCESS)
 			DbgPrint(("Err PsLookupProcessByProcessId\n"));
@@ -36,10 +62,12 @@ VOID LoadImageNotifyRoutine( PUNICODE_STRING FullImageName, HANDLE ProcessId, PI
 										&hProcess);
 		if(status != STATUS_SUCCESS)
 			DbgPrint("ObOpenObjectByPointer error");
+		ObfDereferenceObject(peProcess);
 		
 		status = ZwTerminateProcess(hProcess, STATUS_SUCCESS);
 		if(status)
 			DbgPrint("ZwTerminateProcess error /n");
+		ZwClose(hProcess);
 	}
 
 }
