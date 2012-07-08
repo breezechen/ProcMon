@@ -3,6 +3,7 @@
 UNICODE_STRING DeviceName;
 UNICODE_STRING SymbolicLinkName;
 PDEVICE_OBJECT deviceObject = NULL;
+#define BLACK_LIST_LOAD = CTL_CODE(FILE_DEVICE_UNKNOWN, 800h, METHOD_BUFFERED, FILE_READ_ACCESS + FILE_WRITE_ACCESS);
 
 typedef struct {
   PWCHAR fullName;
@@ -118,16 +119,18 @@ NTSTATUS DriverIoControl(
 {
     PIO_STACK_LOCATION pisl;
     NTSTATUS ns = STATUS_UNSUCCESSFUL;
-    ULONG BuffSize, DataSize = 3000;
-	PVOID pBuff = NULL, pData = NULL;
+    ULONG BuffSize, DataSize = 3;
+	PWCHAR pBuff = NULL, pData = L"out\0";
    
     pisl = IoGetCurrentIrpStackLocation (Irp);
-
 	BuffSize = pisl->Parameters.DeviceIoControl.OutputBufferLength;
-
 	pBuff = Irp->AssociatedIrp.SystemBuffer;
-
 	Irp->IoStatus.Information = 0;
+	
+	DbgPrint(pBuff);
+	DbgPrint(pData);
+	
+	DbgBreakPoint();
 
 	/*switch(pisl->Parameters.DeviceIoControl.IoControlCode)
 	{
@@ -139,6 +142,7 @@ NTSTATUS DriverIoControl(
 			   {*/
 				   memcpy(pBuff, pData, DataSize);
 				   Irp->IoStatus.Information = DataSize;
+				   DbgPrint(pBuff);
 				   ns = STATUS_SUCCESS;
 			  /* } else ns = STATUS_INFO_LENGTH_MISMATCH;
 
@@ -161,7 +165,6 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject,  IN PUNICODE_STRING Registr
 
 	RtlInitUnicodeString(&DeviceName,       dDeviceName);
     RtlInitUnicodeString(&SymbolicLinkName, dSymbolicLinkName);
-	
 	status = IoCreateDevice(DriverObject, 0, &DeviceName, FILE_DEVICE_UNKNOWN, 0, TRUE, &deviceObject);
 	if (!NT_SUCCESS(status)) return status;
 
