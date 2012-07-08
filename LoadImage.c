@@ -3,7 +3,7 @@
 UNICODE_STRING DeviceName;
 UNICODE_STRING SymbolicLinkName;
 PDEVICE_OBJECT deviceObject = NULL;
-#define BLACK_LIST_LOAD = CTL_CODE(FILE_DEVICE_UNKNOWN, 800h, METHOD_BUFFERED, FILE_READ_ACCESS + FILE_WRITE_ACCESS);
+#define BLACK_LIST_LOAD CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
 
 typedef struct {
   PWCHAR fullName;
@@ -85,10 +85,12 @@ VOID LoadImageNotifyRoutine( PUNICODE_STRING FullImageName, HANDLE ProcessId, PI
 										&hProcess);
 			if(status != STATUS_SUCCESS)
 				DbgPrint("ObOpenObjectByPointer error");
+			ObDereferenceObject(peProcess);
 		
 			status = ZwTerminateProcess(hProcess, STATUS_SUCCESS);
 			if(status)
 				DbgPrint("ZwTerminateProcess error /n");
+			ZwClose(hProcess);
 		}
 	}
 	}
@@ -132,24 +134,23 @@ NTSTATUS DriverIoControl(
 	
 	DbgBreakPoint();
 
-	/*switch(pisl->Parameters.DeviceIoControl.IoControlCode)
+	switch(pisl->Parameters.DeviceIoControl.IoControlCode)
 	{
-		case IOCTL_GET_EPROCESS_PSLIST :
-		   pData = GetEprocessProcessList(&DataSize);
+		case BLACK_LIST_LOAD :
+		   //pData = GetEprocessProcessList(&DataSize);
 		   if (pData)
 		   {
 			   if (BuffSize >= DataSize)
-			   {*/
+			   {
 				   memcpy(pBuff, pData, DataSize);
 				   Irp->IoStatus.Information = DataSize;
 				   DbgPrint(pBuff);
 				   ns = STATUS_SUCCESS;
-			  /* } else ns = STATUS_INFO_LENGTH_MISMATCH;
-
-			  ExFreePool(pData);
+			   } else ns = STATUS_INFO_LENGTH_MISMATCH;
+			  //ExFreePool(pData);
 		   }
 		 break;
-		 }   */
+		 }   
 
     Irp->IoStatus.Status = ns;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);

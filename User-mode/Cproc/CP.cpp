@@ -5,6 +5,8 @@
 #include <tchar.h>
 #include <windows.h>
 
+#define BLACK_LIST_LOAD CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+
 
 HANDLE device;
 
@@ -59,13 +61,13 @@ void go()
 	PWCHAR controlbuff = L"im here\0";
 	DWORD dw = GetLastError();
 
-	std::cout << *controlbuff << "\n";
+	std::cout << controlbuff << "\n";
 	//open device
 	device = CreateFile(L"\\\\.\\procmon",GENERIC_READ|GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_SYSTEM, 0);
 	dw = GetLastError();
-	DeviceIoControl(device, 1000, &controlbuff, 256, &controlbuff, 256, &dw, 0);
+	DeviceIoControl(device, BLACK_LIST_LOAD, &controlbuff, 256, &controlbuff, 256, &dw, 0);
 	dw = GetLastError();
-	std::cout << *controlbuff;
+	std::cout << controlbuff;
 }
 
 int main()
