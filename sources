@@ -1,9 +1,0 @@
-TARGETNAME=LoadImage
-
-TARGETTYPE=DRIVER
-
-
-SOURCES=LoadImage.c
-
-
-
