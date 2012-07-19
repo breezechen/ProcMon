@@ -1,5 +1,5 @@
-﻿Build started 18.07.2012 19:28:35.
-     1>Project "D:\UserMode\UserMode\UserMode\UserMode.vcxproj" on node 2 (rebuild target(s)).
+﻿Build started 18.07.2012 22:25:08.
+     1>Project "D:\UserMode\UserModeNew\UserMode\UserMode.vcxproj" on node 2 (rebuild target(s)).
      1>_PrepareForClean:
          Deleting file "Debug\UserMode.lastbuildstate".
        InitializeBuildStatus:
@@ -7,14 +7,14 @@
        ClCompile:
          C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt stdafx.cpp UserMode.cpp
          UserMode.cpp
-     1>d:\usermode\usermode\usermode\usermode.cpp(31): warning C4996: 'wcscpy': This function or variable may be unsafe. Consider using wcscpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+     1>d:\usermode\usermodenew\usermode\usermode.cpp(31): warning C4996: 'wcscpy': This function or variable may be unsafe. Consider using wcscpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\program files\microsoft visual studio 10.0\vc\include\wchar.h(988) : see declaration of 'wcscpy'
          stdafx.cpp
          Generating Code...
        ManifestResourceCompile:
          C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\UserMode.exe.embed.manifest.res" Debug\UserMode_manifest.rc 
        Link:
-         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\UserMode\UserMode\Debug\UserMode.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\UserMode.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\UserMode\UserMode\Debug\UserMode.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\UserMode\UserMode\Debug\UserMode.lib" /MACHINE:X86 Debug\UserMode.exe.embed.manifest.res
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\UserMode\UserModeNew\Debug\UserMode.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\UserMode.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\UserMode\UserModeNew\Debug\UserMode.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\UserMode\UserModeNew\Debug\UserMode.lib" /MACHINE:X86 Debug\UserMode.exe.embed.manifest.res
          Debug\stdafx.obj
          Debug\UserMode.obj
        Manifest:
@@ -22,15 +22,15 @@
          C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /out:"Debug\UserMode.exe.embed.manifest" /manifest Debug\UserMode.exe.intermediate.manifest
          C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\UserMode.exe.embed.manifest.res" Debug\UserMode_manifest.rc 
        LinkEmbedManifest:
-         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\UserMode\UserMode\Debug\UserMode.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\UserMode.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\UserMode\UserMode\Debug\UserMode.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\UserMode\UserMode\Debug\UserMode.lib" /MACHINE:X86 Debug\UserMode.exe.embed.manifest.res
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\UserMode\UserModeNew\Debug\UserMode.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\UserMode.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\UserMode\UserModeNew\Debug\UserMode.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\UserMode\UserModeNew\Debug\UserMode.lib" /MACHINE:X86 Debug\UserMode.exe.embed.manifest.res
          Debug\stdafx.obj
          Debug\UserMode.obj
-         UserMode.vcxproj -> D:\UserMode\UserMode\Debug\UserMode.exe
+         UserMode.vcxproj -> D:\UserMode\UserModeNew\Debug\UserMode.exe
        FinalizeBuildStatus:
          Deleting file "Debug\UserMode.unsuccessfulbuild".
          Touching "Debug\UserMode.lastbuildstate".
-     1>Done Building Project "D:\UserMode\UserMode\UserMode\UserMode.vcxproj" (rebuild target(s)).
+     1>Done Building Project "D:\UserMode\UserModeNew\UserMode\UserMode.vcxproj" (rebuild target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:03.47
+Time Elapsed 00:00:03.72

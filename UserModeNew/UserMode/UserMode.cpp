@@ -38,25 +38,38 @@ void setup()
 	}
 	DWORD k = GetLastError(); 
 
-	SC_HANDLE t = CreateService(man, L"procmon1", L"procmon1", SERVICE_START | SERVICE_STOP, SERVICE_KERNEL_DRIVER, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL, namebuff, 0, 0, 0, 0, 0);
+	SC_HANDLE t = CreateService(man, L"procmon", L"procmon", SERVICE_START | SERVICE_STOP, SERVICE_KERNEL_DRIVER, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL, namebuff, 0, 0, 0, 0, 0);
 
 	if  (t == NULL)
 	{
 		cout<<"Service isn't create";
 	}
 	k = GetLastError();
+	CloseServiceHandle(t);
+}
+
+void StartDriver()
+{
+	DWORD k = 0;
+	SC_HANDLE man = OpenSCManager(0, 0, SC_MANAGER_ALL_ACCESS);
+	k = GetLastError();
+	SC_HANDLE t = OpenService(man, L"procmon", SC_MANAGER_ALL_ACCESS);
+	k = GetLastError();
+	if (t == NULL)
+	{
+		return; 
+	}
 	StartService(t, 0, 0);
 	k = GetLastError();
 	CloseServiceHandle(t);
 }
-
-void cleanup()
+void StopDriver()
 {	
 	DWORD k = 0;
 	SC_HANDLE man = OpenSCManager(0, 0, SC_MANAGER_ALL_ACCESS);
 	k = GetLastError();
 	SERVICE_STATUS stat;
-	SC_HANDLE t = OpenService(man, L"procmon1", SC_MANAGER_ALL_ACCESS);
+	SC_HANDLE t = OpenService(man, L"procmon", SC_MANAGER_ALL_ACCESS);
 	k = GetLastError();
 	if (t == NULL)
 	{
@@ -64,34 +77,55 @@ void cleanup()
 	}
 	ControlService(t, SERVICE_CONTROL_STOP, &stat);   
 	k = GetLastError();
-	DeleteService(t);
-	k = GetLastError();
 	CloseServiceHandle(t);
+}
+void DeleteDriver()
+{
+	DWORD k = 0;
+	SC_HANDLE man = OpenSCManager(0, 0, SC_MANAGER_ALL_ACCESS);
+	k = GetLastError();
+	SC_HANDLE t = OpenService(man, L"procmon", SC_MANAGER_ALL_ACCESS);
+	k = GetLastError();
+	if (t == NULL)
+	{
+		return; 
+	}
+		DeleteService(t);
 }
 
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	HANDLE hDevice;
+	HANDLE hDevice = NULL;
 	BOOL status;
 	DWORD	BufSize = 0x2000;
 	TProcessRecord	*buf = 0;
 	int select = 0;
 	DWORD BytesReturned = 0;    
-	buf = new TProcessRecord [50];
-	unsigned long ioctlCode=IOCTL_GET_PROCESS_LIST;
 
 
 	while (true)
 	{
-		printf("\nSelect action \n1 - Load Driver and open \n2 - Get Proc List \n3 - Add Rule \n4 - Close Driver and Exit \nYour choise: ");
+		printf("\nSelect action \n");
+		printf("1 - Setup Driver \n");
+		printf("2 - Start Driver and Open Device \n");
+		printf("3 - Get Proc List \n");
+		printf("4 - Add Rule \n");
+		printf("5 - Close Device and Stop Driver \n");
+		printf("6 - Delete Driver \n");
+		printf("Your choise: ");
 		cin>>select;
 		switch (select)
 		{
 			case 1:
 				{
 					setup();
-					hDevice = CreateFile(L"\\\\.\\ProcMon",
+					break;
+				}
+			case 2:
+				{
+					StartDriver();
+					hDevice = CreateFile(L"\\\\.\\procmon",
 												GENERIC_READ | GENERIC_WRITE,
 												0,		// share mode none
 												NULL,	// no security
@@ -100,17 +134,17 @@ int _tmain(int argc, _TCHAR* argv[])
 												NULL );		// no template
 					if (hDevice == INVALID_HANDLE_VALUE) {
 							printf("Failed to obtain file handle to device: "
-									"%s with Win32 error code: %d\n",
-									"LBK1", GetLastError() );
+									"%s with Win32 error code: %d\n", GetLastError() );
 					}
-
 					break;
 				}
 
-			case 2:
+			case 3:
 			{
+				BytesReturned = 0; 
+				buf = new TProcessRecord [50];
 				if( !DeviceIoControl(   hDevice,
-					ioctlCode,
+					IOCTL_GET_PROCESS_LIST,
 					NULL, 0,	// Input
 					buf, BufSize,	// Output
 					&BytesReturned,
@@ -129,7 +163,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				delete[] buf;
 				break;
 			}
-			case 3:
+			case 4:
 				{
 					if( !DeviceIoControl(   hDevice,
 						IOCTL_ADD_RULE,
@@ -143,17 +177,25 @@ int _tmain(int argc, _TCHAR* argv[])
 					}
 					break;
 				}
-			case 4:
+			case 5:
 				{
-					status = CloseHandle(hDevice);
-					if (!status) {
-						printf("Failed on call to CloseHandle - error: %d\n",
-						GetLastError() );
-						return 6;
+					if (hDevice != NULL)
+					{
+						status = CloseHandle(hDevice);
+						if (!status) {
+							printf("Failed on call to CloseHandle - error: %d\n",
+							GetLastError() );
+							return 6;
+						}
+						printf("Succeeded in closing device...exiting normally\n");
 					}
-					printf("Succeeded in closing device...exiting normally\n");
+					StopDriver();
+					break;
+				}
 
-					cleanup();
+			case 6:
+				{
+					DeleteDriver();
 					return 0;
 				}
 		}
@@ -162,3 +204,5 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 }
+
+
