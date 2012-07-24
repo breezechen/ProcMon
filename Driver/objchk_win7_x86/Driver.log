@@ -1,0 +1,42 @@
+﻿Build started 23.07.2012 21:34:56.
+     1>Project "D:\src\Driver\Driver\Driver.vcxproj" on node 2 (build target(s)).
+     1>Build:
+         call C:\WinDDK\7600.16385.1\bin\setenv.bat C:\WinDDK\7600.16385.1 chk win7
+         cd /d D:\src
+         build
+         Launching OACR monitor
+         path contains nonexistant c:\program files\microsoft visual studio 10.0\common7\tools\bin, removing
+         path contains nonexistant c:\windows\syswow64, removing
+         BUILD: Compile and Link for x86
+         
+         BUILD: Loading c:\winddk\7600.16385.1\build.dat...
+         
+         BUILD: Computing Include file dependencies:
+         
+         BUILD: Start time: Mon Jul 23 21:34:58 2012
+         BUILD: Examining d:\src directory for files to compile.
+         
+             d:\src 
+         
+         Invalidating OACR warning log for 'root:x86chk'
+         BUILD: Saving c:\winddk\7600.16385.1\build.dat...
+         
+         BUILD: Compiling and Linking d:\src directory
+         
+         Configuring OACR for 'root:x86chk' - <OACR on>
+         Compiling - procmon.c
+         Linking Executable - i386\procmon.sys
+         BUILD: Finish time: Mon Jul 23 21:35:04 2012
+         BUILD: Done
+         
+         
+         
+             3 files compiled - 6 Warnings
+         
+             1 executable built
+         
+     1>Done Building Project "D:\src\Driver\Driver\Driver.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:07.67
