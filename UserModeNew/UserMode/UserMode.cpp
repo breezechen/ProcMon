@@ -96,13 +96,14 @@ void DeleteDriver()
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	FILE *p = NULL;
 	HANDLE hDevice = NULL;
 	BOOL status;
 	DWORD	BufSize = 0x2000;
 	TProcessRecord	*buf = 0;
 	int select = 0;
-	DWORD BytesReturned = 0;    
-
+	DWORD BytesReturned = 0;  
+	wchar_t procName[256];
 
 	while (true)
 	{
@@ -111,8 +112,11 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("2 - Start Driver and Open Device \n");
 		printf("3 - Get Proc List \n");
 		printf("4 - Add Rule \n");
-		printf("5 - Close Device and Stop Driver \n");
-		printf("6 - Delete Driver \n");
+		printf("5 - Print all rules to DBG \n");
+		printf("6 - Delete Rule \n");
+		printf("7 - Delete all rules \n");
+		printf("8 - Close Device and Stop Driver \n");
+		printf("9 - Delete Driver \n");
 		printf("Your choise: ");
 		cin>>select;
 		switch (select)
@@ -138,13 +142,13 @@ int _tmain(int argc, _TCHAR* argv[])
 					}
 					break;
 				}
-
-			case 3:
+		case 3:
 			{
+				p = fopen("buf.txt","w");
 				BytesReturned = 0; 
 				buf = new TProcessRecord [50];
 				if( !DeviceIoControl(   hDevice,
-					IOCTL_GET_PROCESS_LIST,
+					IOCTL_GET_PROCLIST,
 					NULL, 0,	// Input
 					buf, BufSize,	// Output
 					&BytesReturned,
@@ -155,6 +159,8 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 				int i = 0;
 				int prCount = (BytesReturned/sizeof(TProcessRecord) - 1);
+				fwrite(buf,sizeof(TProcessRecord),prCount,p);
+				fclose(p);
 				while (i<prCount)
 				{
 					printf("PID: %d\t Name: %s\n",(buf+i)->ProcessId,(buf+i)->ProcessName);
@@ -163,21 +169,83 @@ int _tmain(int argc, _TCHAR* argv[])
 				delete[] buf;
 				break;
 			}
+	/*		case 3:
+			{
+				printf( "Enter pid to find: \n" );
+				wcin>>procName;
+				if( !DeviceIoControl(   hDevice,
+					IOCTL_FIND_RULE,
+					&procName, sizeof(procName),	// Input
+					NULL, 0,	// Output
+					&BytesReturned,
+					NULL )  )
+				{
+					printf( "Error in IOCTL_FIND_RULE!" );
+					return(-1);
+				}
+				break;
+			}*/
 			case 4:
 				{
+					printf("Enter name of process for killing:\n");
+					wcin>>procName;
 					if( !DeviceIoControl(   hDevice,
 						IOCTL_ADD_RULE,
-						NULL, 0,	// Input
+						&procName, sizeof(procName),	// Input
 						NULL, 0,	// Output
 						&BytesReturned,
 						NULL )  )
 					{
-						printf( "Error in IOCTL_PRINT_DEBUG_MESS!" );
+						printf( "Error in IOCTL_ADD_RULE!" );
+						return(-1);
+					}
+					break;
+				}
+			case 6:
+				{
+					printf("Enter name to delete from list:\n");
+					wcin>>procName;
+					if( !DeviceIoControl(   hDevice,
+						IOCTL_DELETE_RULE,
+						&procName, sizeof(procName),	// Input
+						NULL, 0,	// Output
+						&BytesReturned,
+						NULL )  )
+					{
+						printf( "Error in IOCTL_ADD_RULE!" );
 						return(-1);
 					}
 					break;
 				}
 			case 5:
+				{
+					if( !DeviceIoControl(   hDevice,
+						IOCTL_DBG_PRINT_LIST,
+						NULL, 0,	// Input
+						NULL, 0,	// Output
+						&BytesReturned,
+						NULL )  )
+					{
+						printf( "Error in IOCTL" );
+						return(-1);
+					}
+					break;
+				}
+			case 7:
+				{
+					if( !DeviceIoControl(   hDevice,
+						IOCTL_CLEAN_LIST,
+						NULL, 0,	// Input
+						NULL, 0,	// Output
+						&BytesReturned,
+						NULL )  )
+					{
+						printf( "Error in IOCTL" );
+						return(-1);
+					}
+					break;
+				}
+			case 8:
 				{
 					if (hDevice != NULL)
 					{
@@ -193,7 +261,7 @@ int _tmain(int argc, _TCHAR* argv[])
 					break;
 				}
 
-			case 6:
+			case 9:
 				{
 					DeleteDriver();
 					return 0;

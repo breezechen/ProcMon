@@ -1,18 +1,18 @@
 #include <ntifs.h>
-#include "ProcMon.h"
 #include <wcstr.h>
+#include "ProcMon.h"
+#include "List.h"
 
 
 // Global variables
-UNICODE_STRING notepad;
 UNICODE_STRING DeviceName;
 UNICODE_STRING SymbolicLinkName;
-PDEVICE_OBJECT deviceObject = NULL;
-HANDLE gProcessId;
-KEVENT kEvent;
+PDEVICE_OBJECT deviceObject;
+LIST_ENTRY ListHead; // rules list head
+HANDLE gProcessId; // global pid
+KEVENT kEvent; // event for sync CreateProc & LoadIm
 KSTART_ROUTINE ThreadStart;
 HANDLE hThread;
-
 
 // Functions
 
@@ -24,7 +24,7 @@ NTSTATUS DriverCreateClose( IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
 
 NTSTATUS DriverIoControl( IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
 
-PVOID GetInfoTable(ULONG ATableType);
+PVOID GetInfoTable(VOID);
 
 VOID GetNativeProcessList(PVOID Buffer, ULONG *MemSize );
 
@@ -51,7 +51,7 @@ VOID LoadImageNotifyRoutine( PUNICODE_STRING FullImageName, HANDLE ProcessId, PI
 		}
 	RtlInitUnicodeString(&ProcName,(FullImageName->Buffer+(++i)));
 
-	if ( RtlCompareUnicodeString(&ProcName,&notepad,TRUE) != 0 ) return;
+	if ( TRUE ) return;
 		
 	#if DBG
 	DbgPrint("Process ID: %d\n",ProcessId);
@@ -83,9 +83,9 @@ VOID ProcessCallback(IN HANDLE  ParentId, IN HANDLE  ProcessId, IN BOOLEAN bCrea
 
 VOID DriverUnloadRoutine(IN PDRIVER_OBJECT DriverObject)
 {
-    PsSetCreateProcessNotifyRoutine(ProcessCallback, TRUE);
+	PsSetCreateProcessNotifyRoutine(ProcessCallback, TRUE);
 	PsRemoveLoadImageNotifyRoutine(  LoadImageNotifyRoutine );
-
+	DeleteAll(&ListHead);
 	IoDeleteSymbolicLink(&SymbolicLinkName);
     IoDeleteDevice(deviceObject);
 
@@ -101,6 +101,8 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject,  IN PUNICODE_STRING Registr
 	PCWSTR dDeviceName       = L"\\Device\\procmon";
 	PCWSTR dSymbolicLinkName = L"\\DosDevices\\procmon";
 
+	InitializeListHead(&ListHead);
+
 	RtlInitUnicodeString(&DeviceName,       dDeviceName);
     RtlInitUnicodeString(&SymbolicLinkName, dSymbolicLinkName);
 	
@@ -113,21 +115,16 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject,  IN PUNICODE_STRING Registr
 		IoDeleteDevice(deviceObject);
 		return status;
 	}
-
-	//turn on notify callbacks
-    PsSetCreateProcessNotifyRoutine(ProcessCallback, FALSE);
-	PsSetLoadImageNotifyRoutine( LoadImageNotifyRoutine );
-
-	// this is test stab
-	RtlInitUnicodeString(&notepad, L"notepad.exe");
-
-    DriverObject->DriverUnload = DriverUnloadRoutine;
+	    DriverObject->DriverUnload = DriverUnloadRoutine;
 
 	ppdd = DriverObject->MajorFunction;  
 	ppdd [IRP_MJ_CREATE] = DriverCreateClose;
     ppdd [IRP_MJ_CLOSE ] = DriverCreateClose;
     ppdd [IRP_MJ_DEVICE_CONTROL ] = DriverIoControl;
 
+	//turn on notify callbacks
+    PsSetCreateProcessNotifyRoutine(ProcessCallback, FALSE);
+	PsSetLoadImageNotifyRoutine( LoadImageNotifyRoutine );
 	// initialize and set ivent for CreateProc and LoadImage syncronyzation
 	KeInitializeEvent(&kEvent, SynchronizationEvent, TRUE);
 	KeSetEvent(&kEvent,IO_NO_INCREMENT,FALSE);
@@ -152,27 +149,66 @@ NTSTATUS DriverIoControl( IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	PIO_STACK_LOCATION IrpStack=IoGetCurrentIrpStackLocation(Irp);
-
+	PProcessList pProcRec;
+	ProcessList ProcRec;
 	//-------------------------------
 	ULONG ControlCode =
 	IrpStack->Parameters.DeviceIoControl.IoControlCode;
 
-	// 
+	PWCHAR procName;
+	ULONG inSize;
+
 
 	switch (ControlCode)
 	{
-	case IOCTL_GET_PROCESS_LIST:
+	case IOCTL_GET_PROCLIST:
 		{
 			#if DBG
 			DbgPrint("Get Process List request\n");
 			#endif
 			GetNativeProcessList(Irp->AssociatedIrp.SystemBuffer, &Irp->IoStatus.Information);
+/*			procName = (PWCHAR)Irp->AssociatedIrp.SystemBuffer;
+			inSize = IrpStack->Parameters.DeviceIoControl.InputBufferLength;
+			#if DBG
+			DbgPrint("Find rule: %ws\n",procName);
+			#endif
+			RtlCopyBytes(&(ProcRec.ProcessName),procName,inSize);
+			if (SearchEntry(&ListHead,ProcRec))
+				DbgPrint("Found");*/
 			Irp->IoStatus.Status = STATUS_SUCCESS;
 			break;
 		}
 	case IOCTL_ADD_RULE:
 		{
-			DbgPrint("Add rule");
+			procName = (PWCHAR)Irp->AssociatedIrp.SystemBuffer;
+			inSize = IrpStack->Parameters.DeviceIoControl.InputBufferLength;
+			DbgPrint("Add pid to rule: %ws\n",procName);
+//			RtlInitUnicodeString(&tmp,procName);
+			pProcRec = (PProcessList)ExAllocatePool(NonPagedPool, sizeof(ProcessList));
+			RtlCopyBytes(&(pProcRec->ProcessName),procName,inSize);
+			InsertTailList(&ListHead, &(pProcRec->ListEntry));
+			Irp->IoStatus.Status = STATUS_SUCCESS;
+			break;
+		}
+	case IOCTL_DELETE_RULE:
+		{
+			procName = (PWCHAR)Irp->AssociatedIrp.SystemBuffer;
+			inSize = IrpStack->Parameters.DeviceIoControl.InputBufferLength;
+			DbgPrint("Delete rule: %ws\n",procName);
+			RtlCopyBytes(&(ProcRec.ProcessName),procName,inSize);
+			DeleteEntry(&ListHead,ProcRec);
+			Irp->IoStatus.Status = STATUS_SUCCESS;
+			break;
+		}
+	case IOCTL_CLEAN_LIST:
+		{
+			DeleteAll(&ListHead);
+			Irp->IoStatus.Status = STATUS_SUCCESS;
+			break;
+		}
+	case IOCTL_DBG_PRINT_LIST:
+		{
+			PrintAll(&ListHead);
 			Irp->IoStatus.Status = STATUS_SUCCESS;
 			break;
 		}
@@ -187,6 +223,7 @@ NTSTATUS DriverIoControl( IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
     return status;
 }
+
 
 VOID ThreadStart( __in PEPROCESS peProcess)
 
@@ -209,7 +246,7 @@ VOID ThreadStart( __in PEPROCESS peProcess)
 	PsTerminateSystemThread(STATUS_SUCCESS);
 }
 
-PVOID GetInfoTable(ULONG ATableType)
+PVOID GetInfoTable()
 {
 	ULONG mSize = 0x4000;
 	PVOID mPtr = NULL;
@@ -220,7 +257,7 @@ PVOID GetInfoTable(ULONG ATableType)
 		memset(mPtr, 0, mSize);
 		if (mPtr) 
 		{
-			St = ZwQuerySystemInformation(ATableType, mPtr, mSize, NULL); 
+			St = ZwQuerySystemInformation(SystemProcessesAndThreadsInformation, mPtr, mSize, NULL); 
 		} else return NULL;
 		if (St == STATUS_INFO_LENGTH_MISMATCH)
 		{
@@ -242,10 +279,10 @@ VOID GetNativeProcessList(PVOID Buffer, ULONG *MemSize)
 	ULONG PsCount = 0;
 
 
-	Info = GetInfoTable(SystemProcessesAndThreadsInformation);
+	Info = GetInfoTable();
 	if(!Info)
 		return;
-	else Proc = Info;
+	else Proc = (PSYSTEM_PROCESSES)Info;
 	do 
 	{
 		Proc = (PSYSTEM_PROCESSES)((ULONG)Proc + Proc->NextEntryDelta);	
@@ -257,8 +294,8 @@ VOID GetNativeProcessList(PVOID Buffer, ULONG *MemSize)
 	if(!Mem)
 		return;
 	else
-		Data = Mem;
-	Proc = Info;
+		Data = (PProcessRecord)Mem;
+	Proc = (PSYSTEM_PROCESSES)Info;
 	do
 	{
 		Proc = (PSYSTEM_PROCESSES)((ULONG)Proc + Proc->NextEntryDelta);
@@ -275,18 +312,4 @@ VOID GetNativeProcessList(PVOID Buffer, ULONG *MemSize)
 	RtlCopyBytes(Buffer,Mem,*MemSize);
 	ExFreePool(Mem);
 	return;
-}
-
-void
-PushBLISTEntry(PSINGLE_LIST_ENTRY ListHead, PBLIST_ENTRY Entry)
-{
-    PushEntryList(ListHead, &(Entry->SingleListEntry));
-}
-
-PBLIST_ENTRY
-PopBLISTEntry(PSINGLE_LIST_ENTRY ListHead)
-{
-    PSINGLE_LIST_ENTRY SingleListEntry;
-    SingleListEntry = PopEntryList(ListHead);
-    return CONTAINING_RECORD(SingleListEntry, BLIST_ENTRY, SingleListEntry);
 }
