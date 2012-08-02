@@ -1,0 +1,10 @@
+TARGETNAME=ProcMon
+TARGETTYPE=DRIVER
+
+TARGETPATH=.
+INCLUDES= $(BASEDIR)\inc;.
+
+SOURCES=ProcMon.c \
+	List.c \
+	Debug.c \
+	Hash.c
