@@ -1,5 +1,0 @@
-1>warnings in directory d:\src
-1>d:\src\procmon.c(187) : warning C4996: 'ExAllocatePool': was declared deprecated
-1>d:\src\procmon.c(256) : warning C4996: 'ExAllocatePool': was declared deprecated
-1>d:\src\procmon.c(293) : warning C4996: 'ExAllocatePool': was declared deprecated
-1>d:\src\procmon.c(308) : warning C4242: '=' : conversion from 'ULONG' to 'USHORT', possible loss of data
