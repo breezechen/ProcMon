@@ -16,3 +16,9 @@ typedef struct _ProcessRecord
 	ULONG       ProcessId;
 	WCHAR        ProcessName[256]; 
 } TProcessRecord, *PProcessRecord;
+typedef struct _ProcessList
+{
+	ULONG		Hash;
+	ULONG       ProcessId;
+	WCHAR       ProcessName[256];
+} ProcessList, *PProcessList;

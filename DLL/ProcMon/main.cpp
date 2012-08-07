@@ -55,55 +55,57 @@ extern "C" _declspec(dllexport) void StartDriver()
 		return; 
 	}
 	SC_HANDLE t = OpenService(man, L"procmon", SC_MANAGER_ALL_ACCESS);
+	CloseServiceHandle(man);
 	if (t == NULL)
 	{
 		log("Cant open Service(StartDriver)\n");
 		return; 
 	}
-	if(StartService(t, 0, 0))
+	if(!StartService(t, 0, 0))
 		log("Cant start Service(StartDriver)\n");
 	CloseServiceHandle(t);
 }
 extern "C" _declspec(dllexport) void StopDriver()
 {	
 	SC_HANDLE man = OpenSCManager(0, 0, SC_MANAGER_ALL_ACCESS);
-	if(man)
+	if(!man)
 	{
 		log("Cant open SCManager(StopDriver)\n");
 		return;
 	}
 	SERVICE_STATUS stat;
 	SC_HANDLE t = OpenService(man, L"procmon", SC_MANAGER_ALL_ACCESS);
+	CloseServiceHandle(man);
 	if (t == NULL)
 	{
 		log("Cant open Service(StopDriver)\n");
 		return; 
 	}
-	if(ControlService(t, SERVICE_CONTROL_STOP, &stat))
+	if(!ControlService(t, SERVICE_CONTROL_STOP, &stat))
 		log("Cant stop service(StopDriver)\n");   
 	CloseServiceHandle(t);
 }
 extern "C" _declspec(dllexport) void DeleteDriver()
 {
 	SC_HANDLE man = OpenSCManager(0, 0, SC_MANAGER_ALL_ACCESS);
-	if(man)
+	if(!man)
 	{
 		log("Cant open SCManager(DeleteDriver)\n");
 		return;
 	}
 	SC_HANDLE t = OpenService(man, L"procmon", SC_MANAGER_ALL_ACCESS);
+	CloseServiceHandle(man);
 	if (t == NULL)
 	{
 		log("Cant open Service(DeleteDriver)\n");
 		return; 
 	}
-		DeleteService(t);
+	DeleteService(t);
+	CloseServiceHandle(t);
 }
 
-extern "C" _declspec(dllexport) int SOD()
+extern "C" _declspec(dllexport) int OpenDevice(HANDLE &hDevice)
 {
-	StartDriver();
-	HANDLE hDevice = NULL;
 	hDevice = CreateFile(L"\\\\.\\procmon",
 												GENERIC_READ | GENERIC_WRITE,
 												0,		// share mode none
@@ -118,40 +120,41 @@ extern "C" _declspec(dllexport) int SOD()
 		return 0;
 	}
 	log("Driver start SUCCESS(SOD)\n");
-	return (int)hDevice;
+	return 1;
 }
 
-extern "C" _declspec(dllexport) int GPL(int hDevice, std::list<TProcessRecord*> &list)
+extern "C" _declspec(dllexport) int GPL(const HANDLE hDevice, std::list<TProcessRecord> &list)
 {
 	DWORD BytesReturned = 0;
 	DWORD	BufSize = 100 * sizeof(TProcessRecord);
 	BytesReturned = 0;
 	TProcessRecord* buf = NULL;
 	buf = new TProcessRecord[100];
-	if( !DeviceIoControl(   (HANDLE)hDevice,
+	if( !DeviceIoControl(   hDevice,
 							IOCTL_GET_PROCLIST,
 							NULL, 0,	// Input
 							buf, BufSize,	// Output
 							&BytesReturned,
 							NULL )  )
 	{
-		log( "Error at geting process list(GPL)\n" );
 		delete[] buf;
 		return 0;
 	}
-	int countStruct = BytesReturned / sizeof(TProcessRecord);
+	int countStruct = BytesReturned / sizeof(TProcessRecord) - 1;
 	while(countStruct--)
-		list.push_front(&buf[countStruct]);
+	{
+		list.push_front(buf[countStruct]);
+	}
 	delete[] buf;
 	return 1; 
 }
 
-extern "C" _declspec(dllexport) int newRule(int hDevice, wchar_t *procName)
+extern "C" _declspec(dllexport) int newRule(const HANDLE hDevice, ProcessList proc)
 {
 	DWORD BytesReturned = 0;
-	if( !DeviceIoControl(   (HANDLE)hDevice,
+	if( !DeviceIoControl(   hDevice,
 							IOCTL_ADD_RULE,
-							&procName, sizeof(procName),	// Input
+							&proc, sizeof(proc) + 8,	// Input
 							NULL, 0,	// Output
 							&BytesReturned,
 							NULL )  )
@@ -162,69 +165,67 @@ extern "C" _declspec(dllexport) int newRule(int hDevice, wchar_t *procName)
 	return 1;
 }
 
-extern "C" _declspec(dllexport) int deleteRule(int hDevice, wchar_t *procName)
+extern "C" _declspec(dllexport) int deleteRule(const HANDLE hDevice, ProcessList proc)
 {
 	DWORD BytesReturned = 0;
-	if( !DeviceIoControl((HANDLE)hDevice,
+	if( !DeviceIoControl(hDevice,
 						IOCTL_DELETE_RULE,
-						&procName, sizeof(procName),	// Input
+						&proc, sizeof(proc) + 8,	// Input
 						NULL, 0,	// Output
 						&BytesReturned,
 						NULL ))
 	{
-		printf( "Error at  sending deleteRule(deleteRule)\n" );
+		log( "Error at  sending deleteRule(deleteRule)\n" );
 		return 0;
 	}
 	return 1;
 }
 
-int PrintDriverRules(int hDevice)
+int PrintDriverRules(const HANDLE hDevice)
 {
 	DWORD BytesReturned = 0;
-	if( !DeviceIoControl(   (HANDLE)hDevice,
+	if( !DeviceIoControl(   hDevice,
 							IOCTL_DBG_PRINT_LIST,
 							NULL, 0,	// Input
 							NULL, 0,	// Output
 							&BytesReturned,
 							NULL )  )
 	{
-		printf( "Error at sending PrintDriverRules(PrintDriverRules)\n" );
+		log( "Error at sending PrintDriverRules(PrintDriverRules)\n" );
 		return 0;
 	}
 	return 1;
 }
 
-extern "C" _declspec(dllexport) int deleteDriverRules(int hDevice)
+extern "C" _declspec(dllexport) int deleteDriverRules(const HANDLE hDevice)
 {
 	DWORD BytesReturned = 0;
-	if( !DeviceIoControl(   (HANDLE)hDevice,
+	if( !DeviceIoControl(   hDevice,
 							IOCTL_CLEAN_LIST,
 							NULL, 0,	// Input
 							NULL, 0,	// Output
 							&BytesReturned,
 							NULL )  )
 	{
-	printf( "Error at deleting driver rule(deleteDriverRules)\n" );
+	log( "Error at deleting driver rule(deleteDriverRules)\n" );
 	return 0;
 	}
 	return 1;
 }
 
-extern "C" _declspec(dllexport) int CSD(int hDevice)
+extern "C" _declspec(dllexport) int CloseDriver_(HANDLE &hDevice)
 {
 	BOOL status;
-	if ((HANDLE)hDevice != NULL)
+	if (hDevice != NULL)
 	{
-		status = CloseHandle((HANDLE)hDevice);
+		status = CloseHandle(hDevice);
 		if (!status) 
 		{
 			log("Failed on call to CloseHandle(CSD)\n");
 			return 0;
 		}
-		printf("Succeeded in closing device...exiting normally\n");
+		log("Succeeded in closing device...exiting normally\n");
 	}
-	StopDriver();
-	log("Driver stoped SUCCESS(CSD)\n");
 	return 1;
 }
 
