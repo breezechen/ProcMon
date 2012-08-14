@@ -47,13 +47,14 @@ ULONG getHash(const DWORD id)
 	CloseHandle(exeObj);
 	dosHeader = (PIMAGE_DOS_HEADER)Buffer;
 	optionalHeader = (PIMAGE_OPTIONAL_HEADER)((UCHAR *)Buffer + dosHeader->e_lfanew + 24);
-	free(Buffer);
 	if (optionalHeader == NULL)
 	{
 		log("Cant get OptionalHeader(getHash)\n");
+		free(Buffer);
 		return 0;
 	}
 	hash = chksum_crc32 ((UCHAR *) optionalHeader, sizeof(IMAGE_OPTIONAL_HEADER));
+	free(Buffer);
 	return hash;
 }
 

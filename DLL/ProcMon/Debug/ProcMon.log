@@ -1,4 +1,4 @@
-﻿Build started 14.08.2012 16:22:39.
+﻿Build started 14.08.2012 17:44:50.
      1>Project "C:\repos\ProcMon\DLL\ProcMon\ProcMon.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "Debug\ProcMon.unsuccessfulbuild" because "AlwaysCreate" was specified.
@@ -44,4 +44,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:13.71
+Time Elapsed 00:00:02.93
