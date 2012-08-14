@@ -20,9 +20,28 @@ ULONG getHash(const DWORD id)
 
 	InitHashTable();
 	pid = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE , id);
-	GetModuleFileNameEx(pid, NULL, lpFileName, MAX_PATH);
+	if(!pid)
+	{
+		log("Cant Open Process(getHash)\n");
+		CloseHandle(pid);
+		CloseHandle(exeObj);
+		return 0;
+	}
+	if(!GetModuleFileNameEx(pid, NULL, lpFileName, MAX_PATH))
+	{
+		log("Cant get file path(getHash)\n");
+		CloseHandle(pid);
+		CloseHandle(exeObj);
+		return 0;
+	}
 	CloseHandle(pid);
 	exeObj = CreateFile(lpFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , NULL);
+	if(exeObj == INVALID_HANDLE_VALUE)
+	{
+		log("Cant create file(getHash)\n");
+		CloseHandle(exeObj);
+		return 0;
+	}
 	Buffer = malloc(1024);
 	ReadFile(exeObj, Buffer, 1024, &simCount, NULL);
 	CloseHandle(exeObj);

@@ -154,7 +154,7 @@ extern "C" _declspec(dllexport) int newRule(const HANDLE hDevice, ProcessList pr
 	DWORD BytesReturned = 0;
 	if( !DeviceIoControl(   hDevice,
 							IOCTL_ADD_RULE,
-							&proc, sizeof(proc) + 8,	// Input
+							&proc, sizeof(proc) + 2 * sizeof(ULONG_PTR),	// Input
 							NULL, 0,	// Output
 							&BytesReturned,
 							NULL )  )
